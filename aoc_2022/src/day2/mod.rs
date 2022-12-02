@@ -2,7 +2,7 @@
 pub enum Move {
     Rock,
     Paper,
-    Scissors
+    Scissors,
 }
 
 #[derive(Debug)]
@@ -14,10 +14,10 @@ pub enum PlayerMove {
     Y,
 
     // SCISSORS
-    Z
+    Z,
 }
 
-#[derive( Debug)]
+#[derive(Debug)]
 pub struct Strategy {
     opponent_move: Move,
     my_move_or_outcome: PlayerMove,
@@ -36,15 +36,15 @@ pub fn input_strategies(input: &str) -> Vec<Strategy> {
                 "C" => Move::Scissors,
                 _ => panic!("Invalid move"),
             };
-            let my_move = match parts[1] {
+            let my_move_or_outcome = match parts[1] {
                 "X" => PlayerMove::X,
                 "Y" => PlayerMove::Y,
                 "Z" => PlayerMove::Z,
                 _ => panic!("Invalid move"),
             };
             Strategy {
-                opponent_move: opponent_move,
-                my_move_or_outcome: my_move,
+                opponent_move,
+                my_move_or_outcome,
             }
         }).collect()
 }
@@ -87,7 +87,9 @@ pub fn calculate_round(my_move: &PlayerMove, opponent_move: &Move) -> i32 {
 #[aoc(day2, part1)]
 pub fn part1(strategies: &[Strategy]) -> i32 {
     strategies.iter()
-        .fold(0, |acc, strategy| acc + calculate_round(&strategy.my_move_or_outcome, &strategy.opponent_move))
+        .fold(0,
+              |acc, strategy|
+                  acc + calculate_round(&strategy.my_move_or_outcome, &strategy.opponent_move))
 }
 
 pub fn get_loose_move(m: &Move) -> PlayerMove {
@@ -119,9 +121,12 @@ pub fn part2(strategies: &[Strategy]) -> i32 {
     strategies.iter()
         .fold(0, |acc, strategy| {
             acc + match strategy.my_move_or_outcome {
-                PlayerMove::X => calculate_round(&get_loose_move(&strategy.opponent_move), &strategy.opponent_move),
-                PlayerMove::Y => calculate_round(&get_tie_move(&strategy.opponent_move), &strategy.opponent_move),
-                PlayerMove::Z => calculate_round(&get_win_move(&strategy.opponent_move), &strategy.opponent_move),
+                PlayerMove::X =>
+                    calculate_round(&get_loose_move(&strategy.opponent_move), &strategy.opponent_move),
+                PlayerMove::Y =>
+                    calculate_round(&get_tie_move(&strategy.opponent_move), &strategy.opponent_move),
+                PlayerMove::Z =>
+                    calculate_round(&get_win_move(&strategy.opponent_move), &strategy.opponent_move),
             }
         })
 }
