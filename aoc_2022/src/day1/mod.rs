@@ -1,26 +1,22 @@
 #[aoc_generator(day1)]
-pub fn input_calories(input: &str) -> Vec<Vec<i32>> {
-    input
+pub fn input_calories(input: &str) -> Vec<u32> {
+    let mut t = input
         .split("\n\n")
         .filter(|s| !s.is_empty())
-        .map(|s| s.split('\n').map(|s| s.parse().unwrap()).collect())
-        .collect::<Vec<Vec<i32>>>()
+        .map(|s| s.split('\n')
+            .fold(0u32, |acc, line| acc + line.parse::<u32>().unwrap())
+        )
+        .collect::<Vec<u32>>();
+    t.sort_by(|a, b| b.cmp(a));
+    t
 }
 
 #[aoc(day1, part1)]
-pub fn part1(calories: &[Vec<i32>]) -> i32 {
-    calories.iter().map(|elve| elve.iter().sum()).max().unwrap()
+pub fn part1(calories: &[u32]) -> u32 {
+    *calories.first().unwrap()
 }
 
 #[aoc(day1, part2)]
-pub fn part2(calories: &[Vec<i32>]) -> i32 {
-    let mut elves_total = calories
-        .iter()
-        .map(|elve| elve.iter().sum())
-        .collect::<Vec<i32>>();
-
-    elves_total.sort();
-    elves_total.reverse();
-
-    elves_total[0] + elves_total[1] + elves_total[2]
+pub fn part2(calories: &[u32]) -> u32 {
+    calories.iter().take(3).sum()
 }
