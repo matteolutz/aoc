@@ -7,13 +7,13 @@ pub enum Move {
 
 #[derive(Debug)]
 pub enum PlayerMove {
-    // ROCk
+    // ROCK or LOOSE
     X,
 
-    // PAPER
+    // PAPER or TIE
     Y,
 
-    // SCISSORS
+    // SCISSORS or WIN
     Z,
 }
 
