@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+// TODO: make this thing cleaner :)
+
 #[derive(Debug)]
 pub enum LsFile {
     File(u32, String),
