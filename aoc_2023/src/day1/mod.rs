@@ -1,4 +1,4 @@
-use regex::Regex;
+use regex::{Captures, Regex};
 
 
 const DIGIT_MAP: [(&str, u32); 9] = [
@@ -13,14 +13,28 @@ const DIGIT_MAP: [(&str, u32); 9] = [
     ("nine", 9),
 ];
 
-pub fn get_digits(input: &str) -> u32 {
+pub fn get_digits(input: &str, allow_strings: bool) -> u32 {
     let find_last_digit_regex: Regex = Regex::new(r"(.*)(?P<digit>one|two|three|four|five|six|seven|eight|nine)(.*)").unwrap();
-    let find_digit_regex: Regex = Regex::new(r"(?P<digit>one|two|three|four|five|six|seven|eight|nine)(.*)").unwrap();
+    let find_digit_regex: Regex = Regex::new(r"(?P<digit>one|two|three|four|five|six|seven|eight|nine)").unwrap();
+
+    let mut processed_input = if allow_strings { find_last_digit_regex.replace_all(input, |captures: &Captures| {
+        let digit = captures.name("digit").unwrap().as_str();
+        let digit_value = DIGIT_MAP.iter().find(|(d, _)| d == &digit).unwrap().1;
+        format!("{}{}{}x{}", captures.get(1).unwrap().as_str(), digit, digit_value, captures.get(3).unwrap().as_str())
+    }).to_string() } else { input.to_string() };
+
+    if allow_strings {
+        processed_input = find_digit_regex.replace(&processed_input, |captures: &Captures| {
+            let digit = captures.name("digit").unwrap().as_str();
+            let digit_value = DIGIT_MAP.iter().find(|(d, _)| d == &digit).unwrap().1;
+            format!("{}{}x", digit, digit_value)
+        }).to_string();
+    }
 
     let mut first: Option<(u32, usize)> = None;
     let mut second: Option<(u32, usize)> = None;
 
-    for (i, c) in input.chars().enumerate() {
+    for (i, c) in processed_input.chars().enumerate() {
         if !c.is_digit(10) {
             continue;
         }
@@ -35,64 +49,38 @@ pub fn get_digits(input: &str) -> u32 {
         second = Some((d, i));
     }
 
-    if let Some(m) = find_last_digit_regex.captures(input) {
-        if let Some(digit) = m.name("digit") {
-            let idx = digit.start();
-            if (second.is_none() && first.is_some() && idx > first.unwrap().1) || (second.is_some() && idx > second.unwrap().1) {
-                second =
-                    Some((DIGIT_MAP.iter().find(|(k, _)| k == &digit.as_str()).unwrap().1, idx));
-            }
-        }
-    }
-
-    if let Some(m) = find_digit_regex.captures(input) {
-        if let Some(digit) = m.name("digit") {
-            let idx = digit.start();
-            if first.is_none() || idx < first.unwrap().1 {
-                first =
-                    Some((DIGIT_MAP.iter().find(|(k, _)| k == &digit.as_str()).unwrap().1, idx));
-            }
-        }
-    }
-
     (first.unwrap_or((0, 0)).0 * 10) + second.unwrap_or(first.unwrap_or((0, 0))).0
 }
 
-#[aoc_generator(day1)]
-pub fn input_calibration_data(input: &str) -> Vec<u32> {
+#[aoc(day1, part1)]
+pub fn part1(input: &str) -> u32 {
     input
         .lines()
         .into_iter()
-        .map(|line| get_digits(line))
-        .collect()
-}
-
-#[aoc(day1, part1)]
-pub fn part1(calibration_data: &[u32]) -> u32 {
-    calibration_data
-        .iter()
+        .map(|line| get_digits(line, false))
         .sum()
 }
 
 #[aoc(day1, part2)]
-pub fn part2(calibration_data: &[u32]) -> u32 {
-    calibration_data
-        .iter()
+pub fn part2(input: &str) -> u32 {
+    input
+        .lines()
+        .into_iter()
+        .map(|line| get_digits(line, true))
         .sum()
 }
 
-// add tests here
 #[cfg(test)]
 mod tests {
     #[test]
     fn test_get_digits() {
-        /*assert_eq!(super::get_digits("two1nine"), 29);
-        assert_eq!(super::get_digits("eightwothree"), 83);
-        assert_eq!(super::get_digits("abcone2threexyz"), 13);
-        assert_eq!(super::get_digits("xtwone3four"), 24);
-        assert_eq!(super::get_digits("4nineeightseven2"), 42);
-        assert_eq!(super::get_digits("zoneight234"), 14);
-        assert_eq!(super::get_digits("7pqrstsixteen"), 76);*/
-        assert_eq!(super::get_digits("nineight1"), 98);
+        assert_eq!(super::get_digits("two1nine", true), 29);
+        assert_eq!(super::get_digits("eightwothree", true), 83);
+        assert_eq!(super::get_digits("abcone2threexyz", true), 13);
+        assert_eq!(super::get_digits("xtwone3four", true), 24);
+        assert_eq!(super::get_digits("4nineeightseven2", true), 42);
+        assert_eq!(super::get_digits("zoneight234", true), 14);
+        assert_eq!(super::get_digits("7pqrstsixteen", true), 76);
+        assert_eq!(super::get_digits("nineight", true), 98);
     }
 }
