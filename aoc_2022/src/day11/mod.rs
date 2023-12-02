@@ -1,29 +1,33 @@
+use std::cell::RefCell;
+
 const PART_1_TOTAL_ROUNDS: u32 = 20;
+const PART_2_TOTAL_ROUNDS: u32 = 10_000;
 
 #[derive(Debug, Clone)]
 pub enum Operation {
     MultiplySelf,
-    Multiply(u32),
+    Multiply(u128),
     AddSelf,
-    Add(u32)
+    Add(u128),
 }
 
 #[derive(Debug, Clone)]
 pub struct Test {
-    divisible_by: u32,
-    throw_to_true: u32,
-    throw_to_false: u32
+    divisible_by: u128,
+    receiver_if_true: usize,
+    receiver_if_false: usize,
 }
 
 #[derive(Debug, Clone)]
 pub struct Monkey {
-    items: Vec<u32>,
+    items: Vec<u128>,
     operation: Operation,
-    test: Test
+    test: Test,
+    inspections: u128,
 }
 
 #[aoc_generator(day11)]
-pub fn input_monkey_data(input: &str) -> Vec<Monkey> {
+pub fn input_monkey_data(input: &str) -> Vec<RefCell<Monkey>> {
     input
         .split("\n\n")
         .filter(|l| !l.is_empty())
@@ -33,8 +37,8 @@ pub fn input_monkey_data(input: &str) -> Vec<Monkey> {
                 .split_once(':')
                 .unwrap().1
                 .split(", ")
-                .map(|i| i.trim().parse::<u32>().unwrap())
-                .collect::<Vec<u32>>();
+                .map(|i| i.trim().parse::<u128>().unwrap())
+                .collect::<Vec<u128>>();
 
             let operation_parts = lines[2].split_once('=').unwrap().1.trim()
                 .split_whitespace().collect::<Vec<&str>>();
@@ -43,72 +47,145 @@ pub fn input_monkey_data(input: &str) -> Vec<Monkey> {
                     if operation_parts[2] == "old" {
                         Operation::AddSelf
                     } else {
-                        let val = operation_parts[2].parse::<u32>().unwrap();
+                        let val = operation_parts[2].parse::<u128>().unwrap();
                         Operation::Add(val)
                     }
-                },
+                }
                 "*" => {
                     if operation_parts[2] == "old" {
                         Operation::MultiplySelf
                     } else {
-                        let val = operation_parts[2].parse::<u32>().unwrap();
+                        let val = operation_parts[2].parse::<u128>().unwrap();
                         Operation::Multiply(val)
                     }
-                },
+                }
                 _ => panic!("Unknown operation"),
             };
 
             let test_fn = Test {
-                divisible_by: lines[3].split_once("by").unwrap().1.trim().parse::<u32>().unwrap(),
-                throw_to_true: lines[4].split_once("monkey").unwrap().1.trim().parse::<u32>().unwrap(),
-                throw_to_false: lines[5].split_once("monkey").unwrap().1.trim().parse::<u32>().unwrap(),
+                divisible_by: lines[3].split_once("by").unwrap().1.trim().parse::<u128>().unwrap(),
+                receiver_if_true: lines[4].split_once("monkey").unwrap().1.trim().parse::<usize>().unwrap(),
+                receiver_if_false: lines[5].split_once("monkey").unwrap().1.trim().parse::<usize>().unwrap(),
             };
 
-            Monkey {
+            RefCell::new(Monkey {
                 items,
                 operation: operation_fn,
-                test: test_fn
-            }
-
+                test: test_fn,
+                inspections: 0,
+            })
         })
-        .collect::<Vec<Monkey>>()
-}
-
-pub fn eval_operation(operation: &Operation, val: u32) -> u32 {
-    match operation {
-        Operation::MultiplySelf => val * val,
-        Operation::Multiply(val2) => val * val2,
-        Operation::AddSelf => val + val,
-        Operation::Add(val2) => val + val2,
-    }
-}
-
-pub fn inspect_item(item: &u32, operation: Operation) -> u32 {
-    eval_operation(&operation, *item) / 3
+        .collect::<Vec<RefCell<Monkey>>>()
 }
 
 #[aoc(day11, part1)]
-pub fn part1(input: &[Monkey]) -> u32 {
+pub fn part1(input: &[RefCell<Monkey>]) -> u128 {
     let mut monkeys = input.to_vec();
-    let mut monkey_items =
-        monkeys.iter().map(|m| m.items.clone()).collect::<Vec<Vec<u32>>>();
 
-    for i in 0..PART_1_TOTAL_ROUNDS {
-        for (monkey_index, monkey) in monkeys.iter().enumerate() {
-            for item_index in 0..monkey_items[monkey_index].len() {
-                let item = monkey_items[monkey_index][item_index];
-                let new_item = inspect_item(&item, monkey.operation.clone());
-                monkey_items[
-                    if new_item % monkey.test.divisible_by == 0 {
-                        monkey.test.throw_to_true
-                    } else {
-                        monkey.test.throw_to_false
-                    } as usize
-                ].push(new_item);
+    for _ in 0..PART_1_TOTAL_ROUNDS {
+        for m in monkeys.iter() {
+            let mut items = m.borrow().items.clone();
+            items.reverse();
+
+            for _ in 0..items.len() {
+                let mut i = items.pop().unwrap();
+
+                m.borrow_mut().inspections += 1;
+
+                i = match &m.borrow().operation {
+                    Operation::MultiplySelf => i.pow(2),
+                    Operation::Multiply(val) => i * val,
+                    Operation::AddSelf => i.pow(2),
+                    Operation::Add(val) => i + val,
+                } / 3;
+
+                if i % *&m.borrow().test.divisible_by == 0 {
+                    monkeys[*&m.borrow().test.receiver_if_true].borrow_mut().items.push(i);
+                } else {
+                    monkeys[*&m.borrow().test.receiver_if_false].borrow_mut().items.push(i);
+                }
             }
+
+            m.borrow_mut().items.clear();
         }
-        println!("Round {} complete", i+1);
     }
 
-    0
+    monkeys.sort_by(|a, b| b.borrow().inspections.cmp(&a.borrow().inspections));
+
+    let res = *&monkeys[0].borrow().inspections * *&monkeys[1].borrow().inspections;
+    res
+}
+
+#[aoc(day11, part2)]
+pub fn part2(input: &[RefCell<Monkey>]) -> u128 {
+    let mut monkeys = input.to_vec();
+
+    for _ in 0..PART_2_TOTAL_ROUNDS {
+        for m in monkeys.iter() {
+            let mut items = m.borrow().items.clone();
+            items.reverse();
+
+            for _ in 0..items.len() {
+                let mut i = items.pop().unwrap();
+
+                m.borrow_mut().inspections += 1;
+
+                i = match &m.borrow().operation {
+                    Operation::MultiplySelf => i * i,
+                    Operation::Multiply(val) => i * val,
+                    Operation::AddSelf => i * i,
+                    Operation::Add(val) => i + val,
+                };
+
+                if i % *&m.borrow().test.divisible_by == 0 {
+                    monkeys[*&m.borrow().test.receiver_if_true].borrow_mut().items.push(i);
+                } else {
+                    monkeys[*&m.borrow().test.receiver_if_false].borrow_mut().items.push(i);
+                }
+            }
+
+            m.borrow_mut().items.clear();
+        }
+    }
+
+    monkeys.sort_by(|a, b| b.borrow().inspections.cmp(&a.borrow().inspections));
+
+    let res = *&monkeys[0].borrow().inspections * *&monkeys[1].borrow().inspections;
+    res
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    pub fn test_part2() {
+        println!("{:?}", part2(&input_monkey_data("Monkey 0:
+  Starting items: 79, 98
+  Operation: new = old * 19
+  Test: divisible by 23
+    If true: throw to monkey 2
+    If false: throw to monkey 3
+
+Monkey 1:
+  Starting items: 54, 65, 75, 74
+  Operation: new = old + 6
+  Test: divisible by 19
+    If true: throw to monkey 2
+    If false: throw to monkey 0
+
+Monkey 2:
+  Starting items: 79, 60, 97
+  Operation: new = old * old
+  Test: divisible by 13
+    If true: throw to monkey 1
+    If false: throw to monkey 3
+
+Monkey 3:
+  Starting items: 74
+  Operation: new = old + 3
+  Test: divisible by 17
+    If true: throw to monkey 0
+    If false: throw to monkey 1")))
+    }
 }
