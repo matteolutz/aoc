@@ -83,4 +83,24 @@ mod tests {
         assert_eq!(super::get_digits("7pqrstsixteen", true), 76);
         assert_eq!(super::get_digits("nineight", true), 98);
     }
+
+    #[test]
+    fn test_part1() {
+        assert_eq!(super::part1("1abc2
+pqr3stu8vwx
+a1b2c3d4e5f
+treb7uchet"), 142);
+    }
+
+    #[test]
+    fn test_part2() {
+        assert_eq!(super::part2("two1nine
+eightwothree
+abcone2threexyz
+xtwone3four
+4nineeightseven2
+zoneight234
+7pqrstsixteen"), 281);
+    }
+
 }

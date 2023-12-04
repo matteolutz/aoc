@@ -1,15 +1,15 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone)]
 pub struct ScratchCard {
     game_idx: usize,
-    winning: Vec<u32>,
-    own_numbers: Vec<u32>,
+    winning: HashSet<u32>,
+    own_numbers: HashSet<u32>,
 }
 
 impl ScratchCard {
     pub fn num_winning(&self) -> usize {
-        self.winning.iter().filter(|n| self.own_numbers.contains(n)).count()
+        self.winning.intersection(&self.own_numbers).count()
     }
 
     pub fn worth(&self) -> u32 {
@@ -26,8 +26,8 @@ pub fn input_cards(input: &str) -> Vec<ScratchCard> {
             let (game, numbers) = line.split_once(": ").unwrap();
             let (winning_numbers, own_numbers) = numbers.split_once(" | ").unwrap();
             ScratchCard {
-                winning: winning_numbers.trim().split(" ").filter(|n| !n.is_empty()).map(|n| n.trim().parse().unwrap()).collect(),
-                own_numbers: own_numbers.trim().split(" ").filter(|n| !n.is_empty()).map(|n| n.trim().parse().unwrap()).collect(),
+                winning: winning_numbers.trim().split_whitespace().filter(|n| !n.is_empty()).map(|n| n.trim().parse().unwrap()).collect(),
+                own_numbers: own_numbers.trim().split_whitespace().filter(|n| !n.is_empty()).map(|n| n.trim().parse().unwrap()).collect(),
                 game_idx: game.split_once(" ").unwrap().1.trim().parse().unwrap(),
             }
         })
@@ -44,10 +44,10 @@ pub fn part2(input: &[ScratchCard]) -> u32 {
     let mut cards = input.iter().map(|c| (c.game_idx, 1usize)).collect::<HashMap<usize, usize>>();
 
     for i in 0..input.len() {
-        for _ in 0..*cards.get(&input[i].game_idx).unwrap() {
-            for j in 0..input[i].num_winning() {
-                cards.insert(input[i].game_idx + j + 1, cards.get(&(input[i].game_idx + j + 1)).unwrap() + 1);
-            }
+        for j in 0..input[i].num_winning() {
+            let d = *cards.get(&input[i].game_idx).unwrap();
+            let count = cards.entry(input[i].game_idx + j + 1).or_insert(0);
+            *count += d;
         }
     }
 

@@ -152,7 +152,7 @@ mod tests {
     use crate::day3::input_schematic;
 
     #[test]
-    fn test_part_1() {
+    fn test_part1() {
         let schematic = input_schematic("467..114..
 ...*......
 ..35..633.
@@ -167,7 +167,7 @@ mod tests {
     }
 
     #[test]
-    fn test_part_2() {
+    fn test_part2() {
 
         let schematic = input_schematic("467..114..
 ...*......
